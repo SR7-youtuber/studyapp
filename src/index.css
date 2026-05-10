@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-cosmic-yellow: #FFD700;
+  --color-cosmic-blue: #ADD8E6;
+  --color-space-deep: #0B0E14;
+  --color-space-navy: #1A1F2C;
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-star-twinkle: twinkle 3s ease-in-out infinite;
+
+  @keyframes shimmer {
+    from { background-position: 0% 0%; }
+    to { background-position: 200% 0%; }
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900 font-sans overflow-x-hidden antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.space-gradient {
+  background: linear-gradient(180deg, var(--color-space-deep) 0%, var(--color-space-navy) 100%);
+}
+
+.star {
+  @apply absolute bg-white rounded-full animate-star-twinkle;
+}
+
+/* Custom scrollbar for a cleaner mobile look */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(173, 216, 230, 0.2);
+  border-radius: 10px;
+}
+
