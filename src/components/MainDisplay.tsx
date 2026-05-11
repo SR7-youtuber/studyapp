@@ -4,7 +4,8 @@
  */
 
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, ShoppingCart, Trophy, Settings as SettingsIcon, Star, CheckCircle2, UserCircle2 } from 'lucide-react';
+import { ShoppingCart, Trophy, Settings as SettingsIcon, CheckCircle2 } from 'lucide-react';
+import StudyPage from './StudyPage';
 
 interface MainDisplayProps {
   activeTab: string;
@@ -22,92 +23,13 @@ export default function MainDisplay({ activeTab }: MainDisplayProps) {
           transition={{ duration: 0.3 }}
           className="w-full"
         >
-          {activeTab === 'study' && <StudyView />}
+          {activeTab === 'study' && <StudyPage />}
           {activeTab === 'shop' && <ShopView />}
           {activeTab === 'leaderboard' && <LeaderboardView />}
           {activeTab === 'settings' && <SettingsView />}
         </motion.div>
       </AnimatePresence>
     </div>
-  );
-}
-
-function StudyView() {
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-display font-bold text-space-deep">Learning Path</h2>
-        <div className="flex -space-x-2">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="w-8 h-8 rounded-full bg-cosmic-blue border-2 border-white flex items-center justify-center text-[10px] font-bold text-white">
-              {i}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col items-center space-y-6 relative">
-        {/* Connection Line */}
-        <div className="absolute top-0 bottom-0 w-1 bg-gray-100 rounded-full -z-10" />
-
-        <StudyNode 
-          title="Nebular Basics" 
-          icon={BookOpen} 
-          status="completed" 
-          delay={0.1} 
-        />
-        <StudyNode 
-          title="Quantum Mechanics" 
-          icon={BookOpen} 
-          status="active" 
-          delay={0.2} 
-        />
-        <StudyNode 
-          title="Stellar Lifecycle" 
-          icon={Star} 
-          status="locked" 
-          delay={0.3} 
-          offset="right"
-        />
-        <StudyNode 
-          title="Galactic Lore" 
-          icon={Star} 
-          status="locked" 
-          delay={0.4} 
-        />
-      </div>
-    </div>
-  );
-}
-
-function StudyNode({ title, icon: Icon, status, delay, offset }: any) {
-  const isCompleted = status === 'completed';
-  const isActive = status === 'active';
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: offset === 'right' ? 20 : offset === 'left' ? -20 : 0 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay }}
-      className={`flex flex-col items-center group ${offset === 'right' ? 'ml-24' : offset === 'left' ? 'mr-24' : ''}`}
-    >
-      <div className={`
-        relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer
-        ${isCompleted ? 'bg-cosmic-blue text-white shadow-lg' : 
-          isActive ? 'bg-cosmic-yellow text-space-deep shadow-xl ring-8 ring-cosmic-yellow/20 scale-110' : 
-          'bg-gray-100 text-gray-300'}
-      `}>
-        <Icon size={32} />
-        {isCompleted && (
-          <div className="absolute -top-1 -right-1 bg-green-500 rounded-full border-4 border-white">
-            <CheckCircle2 size={24} className="text-white" fill="currentColor" />
-          </div>
-        )}
-      </div>
-      <span className={`mt-3 font-bold text-sm ${isActive ? 'text-space-deep' : 'text-gray-400'}`}>
-        {title}
-      </span>
-    </motion.div>
   );
 }
 
