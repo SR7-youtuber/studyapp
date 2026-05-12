@@ -13,8 +13,10 @@ import {
   AlertTriangle,
   RotateCcw,
   Trophy,
-  ChevronRight
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
+import { generateQuestionsFromAIService } from '../services/geminiService';
 
 type QuizState = 'ANALYZING' | 'OVERLOAD_WARNING' | 'QUIZ_ACTIVE' | 'RESULTS';
 
@@ -45,27 +47,54 @@ export default function QuizModule({ inputData, onExit }: QuizModuleProps) {
     return broadTopics.includes(inputData.toLowerCase().trim()) || inputData.length > 2000;
   }, [inputData]);
 
-  // Simulation of question generation
+  // Simulation of question generation and broadness check
   useEffect(() => {
-    if (state === 'ANALYZING') {
-      const interval = setInterval(() => {
-        setAnalysisProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            if (isBroad) {
-              setState('OVERLOAD_WARNING');
-            } else {
-              generateQuestions();
-              setState('QUIZ_ACTIVE');
-            }
-            return 100;
-          }
-          return prev + 2;
-        });
-      }, 50);
-      return () => clearInterval(interval);
-    }
-  }, [state, isBroad]);
+    let isMounted = true;
+
+    const startAnalysis = async () => {
+      if (state !== 'ANALYZING') return;
+
+      // Start progress animation
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress((prev) => (prev < 90 ? prev + 2 : prev));
+      }, 100);
+
+      try {
+        if (isBroad) {
+          clearInterval(progressInterval);
+          setAnalysisProgress(100);
+          if (isMounted) setState('OVERLOAD_WARNING');
+          return;
+        }
+
+        // Call Gemini AI
+        const generated = await generateQuestionsFromAIService(inputData);
+        
+        if (isMounted) {
+          setQuestions(generated.map((q: any, i: number) => ({ ...q, id: i })));
+          setAnalysisProgress(100);
+          clearInterval(progressInterval);
+          
+          // Small delay for smooth transition
+          setTimeout(() => {
+            if (isMounted) setState('QUIZ_ACTIVE');
+          }, 500);
+        }
+      } catch (error) {
+        console.error("AI Generation failed, falling back to local logic:", error);
+        generateQuestionsFromText(inputData);
+        setAnalysisProgress(100);
+        clearInterval(progressInterval);
+        if (isMounted) setState('QUIZ_ACTIVE');
+      }
+    };
+
+    startAnalysis();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [state, isBroad, inputData]);
 
   // Timer logic
   useEffect(() => {
@@ -175,8 +204,9 @@ export default function QuizModule({ inputData, onExit }: QuizModuleProps) {
     return newArr;
   };
 
-  const generateQuestions = () => {
-    generateQuestionsFromText(inputData);
+  const generateQuestions = async () => {
+    setState('ANALYZING');
+    setAnalysisProgress(0);
   };
 
   const handleAnswerSelect = (index: number) => {
@@ -213,6 +243,20 @@ export default function QuizModule({ inputData, onExit }: QuizModuleProps) {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center py-12"
           >
+            <div className="relative w-20 h-20 mb-6">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 border-4 border-dashed border-cosmic-blue/30 rounded-full"
+              />
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 flex items-center justify-center text-cosmic-yellow"
+              >
+                <Sparkles size={32} />
+              </motion.div>
+            </div>
             <div className="w-full max-w-xs bg-gray-100 h-2 rounded-full overflow-hidden mb-4">
               <motion.div 
                 className="h-full bg-cosmic-blue"
