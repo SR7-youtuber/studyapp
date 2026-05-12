@@ -25,6 +25,7 @@ export default function StudyPage() {
   const [studyState, setStudyState] = useState<StudyState>('input');
   const [topic, setTopic] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
+  const [fileContent, setFileContent] = useState<string>('');
 
   const handleStartProcessing = () => {
     if (!topic && !fileName) return;
@@ -39,6 +40,14 @@ export default function StudyPage() {
     const file = e.target.files?.[0];
     if (file) {
       setFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result;
+        if (typeof content === 'string') {
+          setFileContent(content);
+        }
+      };
+      reader.readAsText(file);
     }
   };
 
@@ -46,9 +55,10 @@ export default function StudyPage() {
     setStudyState('input');
     setTopic('');
     setFileName(null);
+    setFileContent('');
   };
 
-  const inputId = topic || fileName || '';
+  const inputId = fileContent || topic || '';
 
   return (
     <div className="w-full">

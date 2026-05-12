@@ -77,19 +77,106 @@ export default function QuizModule({ inputData, onExit }: QuizModuleProps) {
     }
   }, [state]);
 
+  const generateQuestionsFromText = (text: string) => {
+    // Basic "NLP" splitting and sanitization
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    const wordsPool = text.toLowerCase().match(/\b(\w{5,})\b/g) || [];
+    const significantWords = Array.from(new Set(wordsPool)).filter(w => 
+      !['always', 'should', 'would', 'could', 'their', 'there', 'those', 'where'].includes(w)
+    );
+    
+    const generated: Question[] = [];
+    
+    // Determine step size to cover the whole document spread
+    const targetCount = 15;
+    const step = Math.max(1, Math.floor(sentences.length / targetCount));
+    
+    for (let i = 0; i < sentences.length && generated.length < targetCount; i += step) {
+      const sentence = sentences[i].trim();
+      if (sentence.length < 20) continue;
+
+      // Type 1: Definition Pattern (Term is/are X)
+      const defMatch = sentence.match(/^([A-Z][a-zA-Z\s]+)\s+(is|are)\s+(.+)$/i);
+      if (defMatch) {
+        const term = defMatch[1].trim();
+        const definition = defMatch[3].split(/[.!?]/)[0].trim();
+        
+        // Find other definitions or significant phrases for distractors
+        const distractors = sentences
+          .filter((_, idx) => idx !== i)
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 3)
+          .map(s => s.trim().split(' ').slice(0, 10).join(' ') + '...');
+
+        const options = shuffleArray([definition, ...distractors]);
+        generated.push({
+          id: generated.length,
+          question: `According to the source material, what is the best definition for "${term}"?`,
+          options,
+          correctAnswer: options.indexOf(definition)
+        });
+      } else {
+        // Type 2: Cloze Deletion (Fill in the blank)
+        const words = sentence.split(' ');
+        // Find a word in the sentence that is in our significantWords pool
+        const targetIdx = words.findIndex(w => significantWords.includes(w.toLowerCase().replace(/[.,!?]/g, '')));
+        
+        if (targetIdx !== -1) {
+          const word = words[targetIdx].replace(/[.,!?]/g, '');
+          const clozed = words.map((w, idx) => idx === targetIdx ? '______' : w).join(' ');
+          
+          // Generate distractors from the significantWords pool
+          const distractors = significantWords
+            .filter(w => w !== word.toLowerCase())
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 3)
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1));
+
+          const options = shuffleArray([word, ...distractors]);
+          generated.push({
+            id: generated.length,
+            question: `Complete the following statement based on the text:\n\n"${clozed}"`,
+            options,
+            correctAnswer: options.indexOf(word)
+          });
+        }
+      }
+    }
+
+    // Fallback if the text was too thin for real parsing
+    if (generated.length < 5) {
+       const academicTopics = ["Principles", "Concepts", "Function", "Theory", "Application"];
+       while(generated.length < 10) {
+          const aspect = academicTopics[generated.length % academicTopics.length];
+          const options = shuffleArray([
+            `It represents the primary ${aspect.toLowerCase()} of the subject.`,
+            `It is an secondary ${aspect.toLowerCase()} mentioned in the text.`,
+            `It contradicts the initial ${aspect.toLowerCase()} provided.`,
+            `It is unrelated to the core ${aspect.toLowerCase()}.`
+          ]);
+          generated.push({
+            id: generated.length,
+            question: `In the context of ${inputData.slice(0, 30)}, what is noted about its ${aspect}?`,
+            options,
+            correctAnswer: options.indexOf(`It represents the primary ${aspect.toLowerCase()} of the subject.`)
+          });
+       }
+    }
+
+    setQuestions(shuffleArray(generated));
+  };
+
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const newArr = [...array];
+    for (let i = newArr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    }
+    return newArr;
+  };
+
   const generateQuestions = () => {
-    const mockQuestions: Question[] = Array.from({ length: 15 }).map((_, i) => ({
-      id: i,
-      question: `Cosmic Inquiry #${i + 1}: How does the concept of ${inputData || 'this material'} relate to stellar evolution?`,
-      options: [
-        "It accelerates the fusion process in the core.",
-        "It maintains gravitational equilibrium.",
-        "It contributes to the formation of binary systems.",
-        "It dictates the terminal luminosity threshold."
-      ],
-      correctAnswer: Math.floor(Math.random() * 4)
-    }));
-    setQuestions(mockQuestions);
+    generateQuestionsFromText(inputData);
   };
 
   const handleAnswerSelect = (index: number) => {
